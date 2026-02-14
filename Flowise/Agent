@@ -1,0 +1,48 @@
++----------------+
+|     Start      |
+|----------------|
+| User Input     |
++--------+-------+
+         |
+         v
++-------------------------------+
+|           Agent 0             |
+|-------------------------------|
+| Model: GPT-4.1                |
+|                               |
+| Capabilities:                 |
+| - Tool Invocation             |
+| - JSON Parsing                |
+| - Rule-Based Analysis         |
+| - Structured Reporting        |
++---------------+---------------+
+                |
+                | Calls Tool
+                v
++----------------------------------+
+|       MQTT_Latest_Data Tool      |
+|----------------------------------|
+| HTTP GET → /latest               |
+| Returns JSON telemetry           |
++----------------------------------+
+                |
+                v
++----------------------------------+
+|      AI Health Classification    |
+|----------------------------------|
+| - RSSI Evaluation                |
+| - Heap Health Check              |
+| - Uptime Monitoring              |
+| - Reset Reason Analysis          |
++----------------------------------+
+                |
+                v
++----------------------------------+
+|     Structured Health Report     |
+|----------------------------------|
+| Overall Status                   |
+| Critical Issues                  |
+| Warnings                         |
+| Observations                     |
+| Recommendations                  |
++----------------------------------+
