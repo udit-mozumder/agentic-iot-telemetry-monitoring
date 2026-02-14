@@ -50,7 +50,8 @@ Structured reporting
 
 Missing telemetry detection
 
-**Firmware Testing Strategy**+------------------+
+**Firmware Testing Strategy**
+
 WiFi disconnect test
 
 MQTT broker failure test
