@@ -1,0 +1,111 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+// ================= CONFIG =================
+const char* ssid = "xxxxx";
+const char* password = "xxxx";
+
+const char* mqtt_server = "10.121.xxx.xx";   // Your PC IP
+const int   mqtt_port   = 1883;
+
+const char* firmware_version = "1.0.0";
+// ===========================================
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+unsigned long lastLogTime = 0;
+const long logInterval = 10000;  // 10 seconds
+
+// ===== Get Reset Reason =====
+String getResetReason() {
+  esp_reset_reason_t reason = esp_reset_reason();
+
+  switch(reason) {
+    case ESP_RST_POWERON: return "POWERON";
+    case ESP_RST_EXT: return "EXTERNAL";
+    case ESP_RST_SW: return "SOFTWARE";
+    case ESP_RST_PANIC: return "PANIC";
+    case ESP_RST_INT_WDT: return "INT_WDT";
+    case ESP_RST_TASK_WDT: return "TASK_WDT";
+    case ESP_RST_WDT: return "WDT";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT: return "BROWNOUT";
+    case ESP_RST_SDIO: return "SDIO";
+    default: return "UNKNOWN";
+  }
+}
+
+// ===== WiFi Setup =====
+void setupWiFi() {
+  Serial.println("Connecting to WiFi...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi Connected!");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// ===== MQTT Reconnect =====
+void reconnectMQTT() {
+  while (!client.connected()) {
+    Serial.print("Connecting to MQTT... ");
+    if (client.connect("ESP32_Firmware_Client")) {
+      Serial.println("connected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.println(client.state());
+      delay(2000);
+    }
+  }
+}
+
+// ===== Publish System Log =====
+void publishSystemLog() {
+
+  String payload = "{";
+  payload += "\"device_id\":\"esp32_01\",";
+  payload += "\"firmware_version\":\"" + String(firmware_version) + "\",";
+  payload += "\"uptime_seconds\":" + String(millis() / 1000) + ",";
+  payload += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
+  payload += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+  payload += "\"reset_reason\":\"" + getResetReason() + "\",";
+  payload += "\"cpu_core\":" + String(xPortGetCoreID()) + ",";
+  payload += "\"ip\":\"" + WiFi.localIP().toString() + "\"";
+  payload += "}";
+
+  client.publish("esp32/system/monitor", payload.c_str());
+
+  Serial.println("Published Log:");
+  Serial.println(payload);
+}
+
+// ===== Arduino Required Functions =====
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  setupWiFi();
+  client.setServer(mqtt_server, mqtt_port);
+}
+
+void loop() {
+
+  if (!client.connected()) {
+    reconnectMQTT();
+  }
+
+  client.loop();
+
+  unsigned long now = millis();
+  if (now - lastLogTime > logInterval) {
+    lastLogTime = now;
+    publishSystemLog();
+  }
+}
